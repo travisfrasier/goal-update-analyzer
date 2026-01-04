@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Goal Update Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar for saved updates -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>Recent Updates</h2>
+        <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle sidebar">×</button>
+      </div>
+      <div class="sidebar-content" id="sidebarContent">
+        <p class="empty-message" id="emptyMessage">No saved updates yet. Analyze some text to get started!</p>
+        <ul class="update-list" id="updateList"></ul>
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="main-content">
+      <header>
+        <h1>Goal Update Analyzer</h1>
+        <p class="subtitle">Analyze your goal updates with simple heuristics</p>
+      </header>
+
+      <div class="input-section">
+        <label for="updateText">Today's Update</label>
+        <textarea 
+          id="updateText" 
+          placeholder="Enter your goal update here... (e.g., 'Made great progress today! Completed my morning workout and finished the first chapter of my book. Feeling motivated to keep going.')"
+          rows="8"
+        ></textarea>
+        <button id="analyzeBtn" class="analyze-btn">Analyze</button>
+      </div>
+
+      <div class="results-section" id="resultsSection" style="display: none;">
+        <h2>Analysis Results</h2>
+        
+        <div class="result-card">
+          <h3>Summary</h3>
+          <ul id="summaryList" class="summary-list"></ul>
+        </div>
+
+        <div class="result-card">
+          <h3>Sentiment</h3>
+          <span id="sentimentLabel" class="sentiment-label"></span>
+        </div>
+
+        <div class="result-card">
+          <h3>Suggested Next Step</h3>
+          <p id="nextStep" class="next-step"></p>
+        </div>
+      </div>
+
+      <!-- Read-only view modal for saved updates -->
+      <div class="modal" id="readOnlyModal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Saved Update</h2>
+            <button class="close-btn" id="closeModal" aria-label="Close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="modal-section">
+              <h3>Original Text</h3>
+              <p id="modalText" class="modal-text"></p>
+            </div>
+            <div class="modal-section">
+              <h3>Summary</h3>
+              <ul id="modalSummary" class="summary-list"></ul>
+            </div>
+            <div class="modal-section">
+              <h3>Sentiment</h3>
+              <span id="modalSentiment" class="sentiment-label"></span>
+            </div>
+            <div class="modal-section">
+              <h3>Suggested Next Step</h3>
+              <p id="modalNextStep" class="next-step"></p>
+            </div>
+            <div class="modal-section">
+              <p class="modal-timestamp" id="modalTimestamp"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Sidebar toggle button (when sidebar is hidden) -->
+    <button class="sidebar-toggle-fixed" id="sidebarToggleFixed" style="display: none;" aria-label="Show sidebar">
+      📋
+    </button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,21 @@
+{
+  "name": "goal-update-analyzer",
+  "version": "0.1.0",
+  "description": "A local web app to analyze goal updates using simple heuristics",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "goals",
+    "analysis",
+    "local"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+

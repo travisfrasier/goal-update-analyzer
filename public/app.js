@@ -24,10 +24,13 @@ const updateList = document.getElementById('updateList');
 const emptyMessage = document.getElementById('emptyMessage');
 const readOnlyModal = document.getElementById('readOnlyModal');
 const closeModal = document.getElementById('closeModal');
+const areaFilter = document.getElementById('areaFilter');
+const filterCount = document.getElementById('filterCount');
 
 // Constants
 const STORAGE_KEY = 'goalUpdates';
 const LAST_AREA_STORAGE_KEY = 'goalUpdateLastArea';
+const AREA_FILTER_STORAGE_KEY = 'goalUpdateAreaFilter';
 const MAX_SAVED_UPDATES = 10;
 
 /**
@@ -89,20 +92,41 @@ function getSavedUpdates() {
  * Renders the list of saved updates in the sidebar
  */
 function renderSavedUpdates() {
-  const updates = getSavedUpdates();
+  const allUpdates = getSavedUpdates();
+  
+  // Get selected filter (empty string means "All Areas")
+  const selectedArea = areaFilter.value;
+  
+  // Filter updates by area (treat missing area as "Misc")
+  const filteredUpdates = selectedArea === ''
+    ? allUpdates
+    : allUpdates.filter(update => {
+        const area = update.area || 'Misc';
+        return area === selectedArea;
+      });
+  
+  // Update count display
+  const totalCount = allUpdates.length;
+  const filteredCount = filteredUpdates.length;
+  if (totalCount > 0) {
+    filterCount.textContent = `Showing ${filteredCount} of ${totalCount}`;
+    filterCount.style.display = 'block';
+  } else {
+    filterCount.style.display = 'none';
+  }
   
   // Clear existing list
   updateList.innerHTML = '';
   
-  if (updates.length === 0) {
+  if (filteredUpdates.length === 0) {
     emptyMessage.style.display = 'block';
     return;
   }
   
   emptyMessage.style.display = 'none';
   
-  // Create list items for each update
-  updates.forEach(update => {
+  // Create list items for each filtered update
+  filteredUpdates.forEach(update => {
     const li = document.createElement('li');
     li.className = 'update-item';
     
@@ -333,17 +357,29 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Initialize: Load saved updates on page load
-renderSavedUpdates();
-
 // Initialize: Load last selected area
 const lastArea = localStorage.getItem(LAST_AREA_STORAGE_KEY);
 if (lastArea) {
   areaSelect.value = lastArea;
 }
 
+// Initialize: Load area filter from localStorage
+const savedFilter = localStorage.getItem(AREA_FILTER_STORAGE_KEY);
+if (savedFilter !== null) {
+  areaFilter.value = savedFilter;
+}
+
 // Save area when changed
 areaSelect.addEventListener('change', () => {
   localStorage.setItem(LAST_AREA_STORAGE_KEY, areaSelect.value);
 });
+
+// Filter updates when area filter changes
+areaFilter.addEventListener('change', () => {
+  localStorage.setItem(AREA_FILTER_STORAGE_KEY, areaFilter.value);
+  renderSavedUpdates();
+});
+
+// Initialize: Load saved updates on page load (after filter is restored)
+renderSavedUpdates();
 

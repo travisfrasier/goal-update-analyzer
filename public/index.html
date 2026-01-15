@@ -15,6 +15,22 @@
         <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle sidebar">×</button>
       </div>
       <div class="sidebar-content" id="sidebarContent">
+        <div class="sidebar-filter">
+          <select id="areaFilter" class="area-filter-select">
+            <option value="">All Areas</option>
+            <option value="Running">Running</option>
+            <option value="Fitness / Health">Fitness / Health</option>
+            <option value="Cubing">Cubing</option>
+            <option value="Coding / Projects">Coding / Projects</option>
+            <option value="Reading / Learning">Reading / Learning</option>
+            <option value="Home / Chores">Home / Chores</option>
+            <option value="Relationship / Social">Relationship / Social</option>
+            <option value="Life Admin">Life Admin</option>
+            <option value="Work">Work</option>
+            <option value="Misc">Misc</option>
+          </select>
+          <p class="filter-count" id="filterCount"></p>
+        </div>
         <p class="empty-message" id="emptyMessage">No saved updates yet. Analyze some text to get started!</p>
         <ul class="update-list" id="updateList"></ul>
       </div>

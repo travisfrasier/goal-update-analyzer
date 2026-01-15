@@ -119,6 +119,44 @@ body {
   padding: 1rem;
 }
 
+.sidebar-filter {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.area-filter-select {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.25s ease;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.area-filter-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-card), 0 0 0 2px var(--accent-focus);
+}
+
+.area-filter-select:hover {
+  border-color: var(--border-color-hover);
+}
+
+.filter-count {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin: 0;
+  text-align: right;
+}
+
 .empty-message {
   color: var(--text-muted);
   text-align: center;

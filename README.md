@@ -20,6 +20,23 @@ All analysis is performed using simple heuristics (no external API calls), makin
 - **Clean UI**: Modern, responsive design that works on desktop and mobile
 - **No Dependencies**: Minimal setup - just Node.js and Express
 
+## UI
+
+The application features a **soft glow dark theme** with a modern, accessible design:
+
+- **Dark Theme**: Very dark charcoal background (#1a1a1f) with slightly lighter card panels (#24242a) for depth
+- **Accent Colors**: Muted blue-violet (#7b8dd4) used sparingly for primary buttons and focus states
+- **Soft Glow Effects**: Subtle shadows and glow effects on interactive elements for a polished look
+- **Typography**: Clear hierarchy with system font stack for optimal readability
+- **Layout**: 
+  - **Desktop**: Sidebar on the left for recent updates history, main content area on the right with input, analysis results, and suggestions
+  - **Mobile**: Stacked vertical layout with collapsible sidebar, optimized for screens as narrow as 390px
+- **Interactive Elements**: 
+  - Buttons and inputs have smooth hover/focus states with soft glow
+  - Sentiment badges use subtle, muted colors (green for positive, gray for neutral, red for negative)
+  - Cards and panels have soft borders and shadows
+- **Accessibility**: High contrast text, clear focus indicators, and keyboard navigation support
+
 ## Tech Stack
 
 - **Backend**: Node.js + Express

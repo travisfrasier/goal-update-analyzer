@@ -29,6 +29,20 @@
 
       <div class="input-section">
         <label for="updateText">Today's Update</label>
+        <div class="input-controls">
+          <select id="areaSelect" class="area-select">
+            <option value="Running">Running</option>
+            <option value="Fitness / Health">Fitness / Health</option>
+            <option value="Cubing">Cubing</option>
+            <option value="Coding / Projects">Coding / Projects</option>
+            <option value="Reading / Learning">Reading / Learning</option>
+            <option value="Home / Chores">Home / Chores</option>
+            <option value="Relationship / Social">Relationship / Social</option>
+            <option value="Life Admin">Life Admin</option>
+            <option value="Work">Work</option>
+            <option value="Misc">Misc</option>
+          </select>
+        </div>
         <textarea 
           id="updateText" 
           placeholder="Enter your goal update here... (e.g., 'Made great progress today! Completed my morning workout and finished the first chapter of my book. Feeling motivated to keep going.')"
@@ -79,6 +93,10 @@
             <div class="modal-section">
               <h3>Suggested Next Step</h3>
               <p id="modalNextStep" class="next-step"></p>
+            </div>
+            <div class="modal-section">
+              <h3>Area</h3>
+              <span id="modalArea" class="area-badge"></span>
             </div>
             <div class="modal-section">
               <p class="modal-timestamp" id="modalTimestamp"></p>

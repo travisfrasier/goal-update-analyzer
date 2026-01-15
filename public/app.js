@@ -11,6 +11,7 @@
 // DOM Elements
 const updateText = document.getElementById('updateText');
 const analyzeBtn = document.getElementById('analyzeBtn');
+const areaSelect = document.getElementById('areaSelect');
 const resultsSection = document.getElementById('resultsSection');
 const summaryList = document.getElementById('summaryList');
 const sentimentLabel = document.getElementById('sentimentLabel');
@@ -26,6 +27,7 @@ const closeModal = document.getElementById('closeModal');
 
 // Constants
 const STORAGE_KEY = 'goalUpdates';
+const LAST_AREA_STORAGE_KEY = 'goalUpdateLastArea';
 const MAX_SAVED_UPDATES = 10;
 
 /**
@@ -36,13 +38,20 @@ const MAX_SAVED_UPDATES = 10;
 function saveUpdate(text, analysis) {
   const updates = getSavedUpdates();
   
+  // Get selected area
+  const area = areaSelect.value;
+  
   // Create new update object
   const newUpdate = {
     id: Date.now(),
     timestamp: new Date().toISOString(),
     text: text,
-    analysis: analysis
+    analysis: analysis,
+    area: area
   };
+  
+  // Save last selected area
+  localStorage.setItem(LAST_AREA_STORAGE_KEY, area);
   
   // Add to beginning of array
   updates.unshift(newUpdate);
@@ -114,12 +123,18 @@ function renderSavedUpdates() {
     // Get sentiment class
     const sentimentClass = update.analysis.sentimentLabel.toLowerCase();
     
+    // Get area (default to 'Misc' if not set)
+    const area = update.area || 'Misc';
+    
     li.innerHTML = `
       <div class="update-item-header">
         <span class="update-item-time">${timeStr}</span>
         <span class="update-item-sentiment sentiment-label ${sentimentClass}">
           ${update.analysis.sentimentLabel}
         </span>
+      </div>
+      <div class="update-item-meta">
+        <span class="area-badge">${escapeHtml(area)}</span>
       </div>
       <div class="update-item-preview">${escapeHtml(preview)}</div>
     `;
@@ -168,6 +183,12 @@ function showReadOnlyView(update) {
   
   // Populate next step
   document.getElementById('modalNextStep').textContent = update.analysis.nextStep;
+  
+  // Populate area (default to 'Misc' if not set)
+  const modalArea = document.getElementById('modalArea');
+  const area = update.area || 'Misc';
+  modalArea.textContent = area;
+  modalArea.className = 'area-badge';
   
   // Show modal
   readOnlyModal.style.display = 'flex';
@@ -314,4 +335,15 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize: Load saved updates on page load
 renderSavedUpdates();
+
+// Initialize: Load last selected area
+const lastArea = localStorage.getItem(LAST_AREA_STORAGE_KEY);
+if (lastArea) {
+  areaSelect.value = lastArea;
+}
+
+// Save area when changed
+areaSelect.addEventListener('change', () => {
+  localStorage.setItem(LAST_AREA_STORAGE_KEY, areaSelect.value);
+});
 

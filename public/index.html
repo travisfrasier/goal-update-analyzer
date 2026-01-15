@@ -15,24 +15,33 @@
         <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle sidebar">×</button>
       </div>
       <div class="sidebar-content" id="sidebarContent">
-        <div class="sidebar-filter">
-          <select id="areaFilter" class="area-filter-select">
-            <option value="">All Areas</option>
-            <option value="Running">Running</option>
-            <option value="Fitness / Health">Fitness / Health</option>
-            <option value="Cubing">Cubing</option>
-            <option value="Coding / Projects">Coding / Projects</option>
-            <option value="Reading / Learning">Reading / Learning</option>
-            <option value="Home / Chores">Home / Chores</option>
-            <option value="Relationship / Social">Relationship / Social</option>
-            <option value="Life Admin">Life Admin</option>
-            <option value="Work">Work</option>
-            <option value="Misc">Misc</option>
-          </select>
-          <p class="filter-count" id="filterCount"></p>
+        <!-- Log view content -->
+        <div id="logViewContent" class="view-content">
+          <div class="sidebar-filter">
+            <select id="areaFilter" class="area-filter-select">
+              <option value="">All Areas</option>
+              <option value="Running">Running</option>
+              <option value="Fitness / Health">Fitness / Health</option>
+              <option value="Cubing">Cubing</option>
+              <option value="Coding / Projects">Coding / Projects</option>
+              <option value="Reading / Learning">Reading / Learning</option>
+              <option value="Home / Chores">Home / Chores</option>
+              <option value="Relationship / Social">Relationship / Social</option>
+              <option value="Life Admin">Life Admin</option>
+              <option value="Work">Work</option>
+              <option value="Misc">Misc</option>
+            </select>
+            <p class="filter-count" id="filterCount"></p>
+          </div>
+          <p class="empty-message" id="emptyMessage">No saved updates yet. Analyze some text to get started!</p>
+          <ul class="update-list" id="updateList"></ul>
         </div>
-        <p class="empty-message" id="emptyMessage">No saved updates yet. Analyze some text to get started!</p>
-        <ul class="update-list" id="updateList"></ul>
+        
+        <!-- Week view content -->
+        <div id="weekViewContent" class="view-content" style="display: none;">
+          <div class="week-summary" id="weekSummary"></div>
+          <div class="week-areas" id="weekAreas"></div>
+        </div>
       </div>
     </aside>
 
@@ -41,6 +50,10 @@
       <header>
         <h1>Goal Update Analyzer</h1>
         <p class="subtitle">Analyze your goal updates with simple heuristics</p>
+        <div class="view-toggle">
+          <button id="logViewBtn" class="view-toggle-btn active">Log</button>
+          <button id="weekViewBtn" class="view-toggle-btn">Week</button>
+        </div>
       </header>
 
       <div class="input-section">

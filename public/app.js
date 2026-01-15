@@ -26,12 +26,33 @@ const readOnlyModal = document.getElementById('readOnlyModal');
 const closeModal = document.getElementById('closeModal');
 const areaFilter = document.getElementById('areaFilter');
 const filterCount = document.getElementById('filterCount');
+const logViewBtn = document.getElementById('logViewBtn');
+const weekViewBtn = document.getElementById('weekViewBtn');
+const logViewContent = document.getElementById('logViewContent');
+const weekViewContent = document.getElementById('weekViewContent');
+const weekSummary = document.getElementById('weekSummary');
+const weekAreas = document.getElementById('weekAreas');
 
 // Constants
 const STORAGE_KEY = 'goalUpdates';
 const LAST_AREA_STORAGE_KEY = 'goalUpdateLastArea';
 const AREA_FILTER_STORAGE_KEY = 'goalUpdateAreaFilter';
+const VIEW_MODE_STORAGE_KEY = 'goalUpdateViewMode';
 const MAX_SAVED_UPDATES = 10;
+
+// Area list in order (same as used for entry creation)
+const AREAS_ORDER = [
+  'Running',
+  'Fitness / Health',
+  'Cubing',
+  'Coding / Projects',
+  'Reading / Learning',
+  'Home / Chores',
+  'Relationship / Social',
+  'Life Admin',
+  'Work',
+  'Misc'
+];
 
 /**
  * Saves an update to localStorage
@@ -67,8 +88,12 @@ function saveUpdate(text, analysis) {
   // Save to localStorage
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updates));
   
-  // Refresh sidebar
-  renderSavedUpdates();
+  // Refresh sidebar (render appropriate view)
+  if (getCurrentViewMode() === 'week') {
+    renderWeekView();
+  } else {
+    renderSavedUpdates();
+  }
 }
 
 /**
@@ -89,9 +114,38 @@ function getSavedUpdates() {
 }
 
 /**
- * Renders the list of saved updates in the sidebar
+ * Gets updates from the last 7 days (rolling)
+ * @returns {Array} Array of recent updates
+ */
+function getRecentUpdates() {
+  const allUpdates = getSavedUpdates();
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  return allUpdates.filter(update => {
+    const updateDate = new Date(update.timestamp);
+    return updateDate >= sevenDaysAgo;
+  });
+}
+
+/**
+ * Gets the current view mode (defaults to 'log')
+ * @returns {string} 'log' or 'week'
+ */
+function getCurrentViewMode() {
+  const savedMode = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+  return savedMode || 'log';
+}
+
+/**
+ * Renders the list of saved updates in the sidebar (Log view only)
  */
 function renderSavedUpdates() {
+  // Only render if we're in Log view mode
+  if (getCurrentViewMode() !== 'log') {
+    return;
+  }
+  
   const allUpdates = getSavedUpdates();
   
   // Get selected filter (empty string means "All Areas")
@@ -169,6 +223,120 @@ function renderSavedUpdates() {
     });
     
     updateList.appendChild(li);
+  });
+}
+
+/**
+ * Renders the Week view in the sidebar
+ */
+function renderWeekView() {
+  const recentUpdates = getRecentUpdates();
+  const totalEntries = recentUpdates.length;
+  
+  // Group updates by area
+  const groupedByArea = {};
+  recentUpdates.forEach(update => {
+    const area = update.area || 'Misc';
+    if (!groupedByArea[area]) {
+      groupedByArea[area] = [];
+    }
+    groupedByArea[area].push(update);
+  });
+  
+  // Calculate area counts for summary
+  const areaCounts = Object.entries(groupedByArea).map(([area, updates]) => ({
+    area,
+    count: updates.length
+  })).sort((a, b) => b.count - a.count);
+  
+  // Render summary
+  let summaryHtml = `<div class="week-summary-card"><h3>Last 7 Days</h3><p class="week-summary-total">${totalEntries} ${totalEntries === 1 ? 'entry' : 'entries'}</p>`;
+  
+  if (areaCounts.length > 0) {
+    summaryHtml += '<p class="week-summary-areas"><strong>Top areas:</strong> ';
+    const top3 = areaCounts.slice(0, 3);
+    summaryHtml += top3.map(item => `${item.area} (${item.count})`).join(', ');
+    summaryHtml += '</p>';
+  }
+  
+  summaryHtml += '</div>';
+  weekSummary.innerHTML = summaryHtml;
+  
+  // Clear areas container
+  weekAreas.innerHTML = '';
+  
+  if (totalEntries === 0) {
+    weekAreas.innerHTML = '<p class="empty-message">No entries in the last 7 days.</p>';
+    return;
+  }
+  
+  // Render grouped sections by area order
+  AREAS_ORDER.forEach(area => {
+    const updates = groupedByArea[area];
+    if (!updates || updates.length === 0) {
+      return;
+    }
+    
+    // Sort updates by timestamp (newest first)
+    updates.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    const areaSection = document.createElement('div');
+    areaSection.className = 'week-area-section';
+    
+    const areaHeader = document.createElement('div');
+    areaHeader.className = 'week-area-header';
+    areaHeader.innerHTML = `
+      <h3 class="week-area-title">${escapeHtml(area)}</h3>
+      <span class="week-area-count">${updates.length}</span>
+    `;
+    
+    const areaList = document.createElement('div');
+    areaList.className = 'week-area-list';
+    
+    updates.forEach(update => {
+      const entry = document.createElement('div');
+      entry.className = 'week-entry';
+      
+      // Format short timestamp
+      const date = new Date(update.timestamp);
+      const timeStr = date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      
+      // Get preview (first ~80 chars)
+      const preview = update.text.length > 80 
+        ? update.text.substring(0, 80) + '...'
+        : update.text;
+      
+      // Get sentiment badge if available
+      let sentimentBadge = '';
+      if (update.analysis && update.analysis.sentimentLabel) {
+        const sentimentClass = update.analysis.sentimentLabel.toLowerCase();
+        sentimentBadge = `<span class="week-entry-sentiment sentiment-label ${sentimentClass}">${update.analysis.sentimentLabel}</span>`;
+      }
+      
+      entry.innerHTML = `
+        <div class="week-entry-header">
+          <span class="week-entry-time">${timeStr}</span>
+          ${sentimentBadge}
+        </div>
+        <div class="week-entry-preview">${escapeHtml(preview)}</div>
+      `;
+      
+      // Add click handler to show read-only view
+      entry.addEventListener('click', () => {
+        showReadOnlyView(update);
+      });
+      
+      areaList.appendChild(entry);
+    });
+    
+    areaSection.appendChild(areaHeader);
+    areaSection.appendChild(areaList);
+    weekAreas.appendChild(areaSection);
   });
 }
 
@@ -329,6 +497,30 @@ function toggleSidebar() {
     : 'none';
 }
 
+/**
+ * Switches between Log and Week views
+ * @param {string} viewMode - 'log' or 'week'
+ */
+function switchView(viewMode) {
+  // Save to localStorage
+  localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+  
+  // Update button states
+  if (viewMode === 'log') {
+    logViewBtn.classList.add('active');
+    weekViewBtn.classList.remove('active');
+    logViewContent.style.display = 'block';
+    weekViewContent.style.display = 'none';
+    renderSavedUpdates();
+  } else {
+    logViewBtn.classList.remove('active');
+    weekViewBtn.classList.add('active');
+    logViewContent.style.display = 'none';
+    weekViewContent.style.display = 'block';
+    renderWeekView();
+  }
+}
+
 // Event Listeners
 analyzeBtn.addEventListener('click', analyzeText);
 
@@ -380,6 +572,11 @@ areaFilter.addEventListener('change', () => {
   renderSavedUpdates();
 });
 
-// Initialize: Load saved updates on page load (after filter is restored)
-renderSavedUpdates();
+// View toggle event listeners
+logViewBtn.addEventListener('click', () => switchView('log'));
+weekViewBtn.addEventListener('click', () => switchView('week'));
+
+// Initialize: Load saved view mode and render appropriate view
+const savedViewMode = getCurrentViewMode();
+switchView(savedViewMode);
 

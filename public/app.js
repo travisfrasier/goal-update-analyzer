@@ -204,6 +204,31 @@ function entryMatchesTagFilters(update, activeFilters) {
 }
 
 /**
+ * Gets the muted color for an area (derived from accent color with hue adjustments)
+ * @param {string} area - Area name
+ * @returns {string} CSS color value (rgba)
+ */
+function getAreaColor(area) {
+  // Base color: accent-primary #7b8dd4 (blue-violet) = hsl(226, 48%, 65%)
+  // Create a muted palette by adjusting hue and keeping saturation/lightness subtle
+  
+  const areaColorMap = {
+    'Running': 'rgba(138, 141, 212, 0.7)',          // Slightly more blue
+    'Fitness / Health': 'rgba(107, 191, 143, 0.7)', // Green-tinted (success-like)
+    'Cubing': 'rgba(180, 141, 212, 0.7)',           // Purple-tinted
+    'Coding / Projects': 'rgba(123, 177, 212, 0.7)', // Cyan-tinted
+    'Reading / Learning': 'rgba(212, 165, 116, 0.7)', // Warm orange-tinted
+    'Home / Chores': 'rgba(167, 141, 212, 0.7)',     // Lavender
+    'Relationship / Social': 'rgba(212, 140, 177, 0.7)', // Pink-tinted
+    'Life Admin': 'rgba(141, 156, 212, 0.7)',        // Medium blue
+    'Work': 'rgba(123, 141, 212, 0.7)',              // Base accent color
+    'Misc': 'rgba(139, 139, 149, 0.7)'               // Neutral gray
+  };
+  
+  return areaColorMap[area] || areaColorMap['Misc'];
+}
+
+/**
  * Renders the list of saved updates in the sidebar (Log view only)
  */
 function renderSavedUpdates() {
@@ -286,6 +311,13 @@ function renderSavedUpdates() {
     // Get tags (default to empty array if not set)
     const tags = update.tags || [];
     
+    // Get area color for the left bar
+    const areaColor = getAreaColor(area);
+    
+    // Set data attribute and inline style for area color
+    li.setAttribute('data-area', area);
+    li.style.setProperty('--area-color', areaColor);
+    
     li.innerHTML = `
       <div class="update-item-header">
         <span class="update-item-time">${timeStr}</span>
@@ -293,11 +325,11 @@ function renderSavedUpdates() {
           ${update.analysis.sentimentLabel}
         </span>
       </div>
-      <div class="update-item-meta">
-        <span class="area-badge">${escapeHtml(area)}</span>
+      <div class="update-item-content">
+        <div class="update-item-preview">${escapeHtml(preview)}</div>
         ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags, true)}</div>` : ''}
+        <span class="area-label">${escapeHtml(area)}</span>
       </div>
-      <div class="update-item-preview">${escapeHtml(preview)}</div>
     `;
     
     // Add click handler to show read-only view (but allow tag clicks to filter)
@@ -427,13 +459,26 @@ function renderWeekView() {
       // Get tags (default to empty array if not set)
       const tags = update.tags || [];
       
+      // Get area (default to 'Misc' if not set)
+      const area = update.area || 'Misc';
+      
+      // Get area color for the left bar
+      const areaColor = getAreaColor(area);
+      
+      // Set data attribute and inline style for area color
+      entry.setAttribute('data-area', area);
+      entry.style.setProperty('--area-color', areaColor);
+      
       entry.innerHTML = `
         <div class="week-entry-header">
           <span class="week-entry-time">${timeStr}</span>
           ${sentimentBadge}
         </div>
-        <div class="week-entry-preview">${escapeHtml(preview)}</div>
-        ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags, true)}</div>` : ''}
+        <div class="week-entry-content">
+          <div class="week-entry-preview">${escapeHtml(preview)}</div>
+          ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags, true)}</div>` : ''}
+          <span class="area-label">${escapeHtml(area)}</span>
+        </div>
       `;
       
       // Add click handler to show read-only view (but allow tag clicks to filter)

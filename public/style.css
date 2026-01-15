@@ -307,9 +307,23 @@ body {
 
 .week-entry {
   padding: 0.875rem 1rem;
+  padding-left: calc(1rem + 4px);
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+}
+
+/* Left color bar for area */
+.week-entry::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  background-color: var(--area-color, rgba(139, 139, 149, 0.7));
+  border-radius: 0 2px 2px 0;
 }
 
 .week-entry:last-child {
@@ -339,6 +353,10 @@ body {
   padding: 0.2rem 0.5rem !important;
 }
 
+.week-entry-content {
+  position: relative;
+}
+
 .week-entry-preview {
   font-size: 0.875rem;
   color: var(--text-light);
@@ -352,6 +370,19 @@ body {
 
 .week-entry .tag-pills {
   margin-top: 0.25rem;
+}
+
+.week-entry .area-label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-weight: 400;
+  pointer-events: none;
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .empty-message {
@@ -375,6 +406,20 @@ body {
   cursor: pointer;
   transition: all 0.25s ease;
   box-shadow: var(--shadow-card);
+  position: relative;
+  padding-left: calc(1rem + 4px);
+}
+
+/* Left color bar for area */
+.update-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  background-color: var(--area-color, rgba(139, 139, 149, 0.7));
+  border-radius: 0 2px 2px 0;
 }
 
 .update-item:hover {
@@ -398,6 +443,10 @@ body {
   font-weight: 500;
 }
 
+.update-item-content {
+  position: relative;
+}
+
 .update-item-preview {
   font-size: 0.9rem;
   color: var(--text-light);
@@ -406,6 +455,20 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.area-label {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-weight: 400;
+  pointer-events: none;
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .update-item-sentiment {
@@ -692,16 +755,8 @@ textarea:focus {
   border: 1px solid rgba(123, 141, 212, 0.2);
 }
 
-.update-item-meta {
-  margin-bottom: 0.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.update-item-meta .tag-pills {
-  margin-top: 0;
+.update-item-content .tag-pills {
+  margin-top: 0.25rem;
 }
 
 .analyze-btn {

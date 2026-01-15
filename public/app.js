@@ -36,12 +36,14 @@ const tagsInput = document.getElementById('tagsInput');
 const tagPresets = document.getElementById('tagPresets');
 const modalTags = document.getElementById('modalTags');
 const modalTagsSection = document.getElementById('modalTagsSection');
+const activeTagFilters = document.getElementById('activeTagFilters');
 
 // Constants
 const STORAGE_KEY = 'goalUpdates';
 const LAST_AREA_STORAGE_KEY = 'goalUpdateLastArea';
 const AREA_FILTER_STORAGE_KEY = 'goalUpdateAreaFilter';
 const VIEW_MODE_STORAGE_KEY = 'goalUpdateViewMode';
+const TAG_FILTER_STORAGE_KEY = 'goalUpdateTagFilters';
 const MAX_SAVED_UPDATES = 10;
 
 // Area list in order (same as used for entry creation)
@@ -158,6 +160,50 @@ function getCurrentViewMode() {
 }
 
 /**
+ * Gets active tag filters from localStorage
+ * @returns {string[]} Array of normalized tag filters
+ */
+function getActiveTagFilters() {
+  const stored = localStorage.getItem(TAG_FILTER_STORAGE_KEY);
+  if (!stored) {
+    return [];
+  }
+  try {
+    const filters = JSON.parse(stored);
+    return Array.isArray(filters) ? filters.map(tag => normalizeTag(tag)) : [];
+  } catch (e) {
+    console.error('Error parsing active tag filters:', e);
+    return [];
+  }
+}
+
+/**
+ * Saves active tag filters to localStorage
+ * @param {string[]} filters - Array of tag filters to save
+ */
+function setActiveTagFilters(filters) {
+  const normalized = filters.map(tag => normalizeTag(tag)).filter(tag => tag.length > 0);
+  localStorage.setItem(TAG_FILTER_STORAGE_KEY, JSON.stringify(normalized));
+}
+
+/**
+ * Checks if an entry matches the active tag filters (AND logic)
+ * @param {Object} update - Update entry to check
+ * @param {string[]} activeFilters - Active tag filters
+ * @returns {boolean} True if entry matches all filters
+ */
+function entryMatchesTagFilters(update, activeFilters) {
+  if (activeFilters.length === 0) {
+    return true;
+  }
+  
+  const entryTags = (update.tags || []).map(tag => normalizeTag(tag));
+  
+  // Check if entry has ALL active filter tags (AND logic)
+  return activeFilters.every(filterTag => entryTags.includes(filterTag));
+}
+
+/**
  * Renders the list of saved updates in the sidebar (Log view only)
  */
 function renderSavedUpdates() {
@@ -171,13 +217,26 @@ function renderSavedUpdates() {
   // Get selected filter (empty string means "All Areas")
   const selectedArea = areaFilter.value;
   
+  // Get active tag filters
+  const activeTagFilters = getActiveTagFilters();
+  
   // Filter updates by area (treat missing area as "Misc")
-  const filteredUpdates = selectedArea === ''
+  let filteredUpdates = selectedArea === ''
     ? allUpdates
     : allUpdates.filter(update => {
         const area = update.area || 'Misc';
         return area === selectedArea;
       });
+  
+  // Apply tag filtering (AND logic - entry must have ALL active filter tags)
+  if (activeTagFilters.length > 0) {
+    filteredUpdates = filteredUpdates.filter(update => 
+      entryMatchesTagFilters(update, activeTagFilters)
+    );
+  }
+  
+  // Render active tag filters UI
+  renderActiveTagFilters();
   
   // Update count display
   const totalCount = allUpdates.length;
@@ -236,13 +295,24 @@ function renderSavedUpdates() {
       </div>
       <div class="update-item-meta">
         <span class="area-badge">${escapeHtml(area)}</span>
-        ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags)}</div>` : ''}
+        ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags, true)}</div>` : ''}
       </div>
       <div class="update-item-preview">${escapeHtml(preview)}</div>
     `;
     
-    // Add click handler to show read-only view
-    li.addEventListener('click', () => {
+    // Add click handler to show read-only view (but allow tag clicks to filter)
+    li.addEventListener('click', (e) => {
+      // If clicking a tag pill, don't open modal
+      const tagPill = e.target.closest('.tag-pill.clickable');
+      if (tagPill) {
+        const tag = tagPill.getAttribute('data-tag');
+        if (tag) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleTagFilter(tag);
+          return;
+        }
+      }
       showReadOnlyView(update);
     });
     
@@ -254,7 +324,16 @@ function renderSavedUpdates() {
  * Renders the Week view in the sidebar
  */
 function renderWeekView() {
-  const recentUpdates = getRecentUpdates();
+  let recentUpdates = getRecentUpdates();
+  
+  // Apply tag filtering (AND logic - entry must have ALL active filter tags)
+  const activeTagFilters = getActiveTagFilters();
+  if (activeTagFilters.length > 0) {
+    recentUpdates = recentUpdates.filter(update => 
+      entryMatchesTagFilters(update, activeTagFilters)
+    );
+  }
+  
   const totalEntries = recentUpdates.length;
   
   // Group updates by area
@@ -285,6 +364,9 @@ function renderWeekView() {
   
   summaryHtml += '</div>';
   weekSummary.innerHTML = summaryHtml;
+  
+  // Render active tag filters UI
+  renderActiveTagFilters();
   
   // Clear areas container
   weekAreas.innerHTML = '';
@@ -351,11 +433,22 @@ function renderWeekView() {
           ${sentimentBadge}
         </div>
         <div class="week-entry-preview">${escapeHtml(preview)}</div>
-        ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags)}</div>` : ''}
+        ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags, true)}</div>` : ''}
       `;
       
-      // Add click handler to show read-only view
-      entry.addEventListener('click', () => {
+      // Add click handler to show read-only view (but allow tag clicks to filter)
+      entry.addEventListener('click', (e) => {
+        // If clicking a tag pill, don't open modal
+        const tagPill = e.target.closest('.tag-pill.clickable');
+        if (tagPill) {
+          const tag = tagPill.getAttribute('data-tag');
+          if (tag) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTagFilter(tag);
+            return;
+          }
+        }
         showReadOnlyView(update);
       });
       
@@ -411,9 +504,10 @@ function showReadOnlyView(update) {
   modalArea.className = 'area-badge';
   
   // Populate tags (default to empty array if not set)
+  // Tags in modal are NOT clickable (display-only)
   const tags = update.tags || [];
   if (tags.length > 0) {
-    modalTags.innerHTML = renderTagPills(tags);
+    modalTags.innerHTML = renderTagPills(tags, false);
     modalTagsSection.style.display = 'block';
   } else {
     modalTags.innerHTML = '';
@@ -550,16 +644,121 @@ function updateTagChipStates() {
 /**
  * Renders tags as pills HTML
  * @param {string[]} tags - Array of tags to render
+ * @param {boolean} clickable - Whether pills should be clickable for filtering
+ * @param {Function} onClickHandler - Optional click handler function (receives tag)
  * @returns {string} HTML string of tag pills
  */
-function renderTagPills(tags) {
+function renderTagPills(tags, clickable = false, onClickHandler = null) {
   if (!tags || tags.length === 0) {
     return '';
   }
   
-  return tags.map(tag => 
-    `<span class="tag-pill">${escapeHtml(tag)}</span>`
-  ).join('');
+  const activeFilters = getActiveTagFilters();
+  
+  return tags.map(tag => {
+    const normalizedTag = normalizeTag(tag);
+    const isActive = activeFilters.includes(normalizedTag);
+    const clickableClass = clickable ? 'clickable' : '';
+    const activeClass = isActive ? 'filter-active' : '';
+    
+    // Always add data-tag attribute when clickable, so we can retrieve it in click handlers
+    const dataTagAttr = clickable ? `data-tag="${escapeHtml(tag)}"` : '';
+    
+    return `<span class="tag-pill ${clickableClass} ${activeClass}" ${dataTagAttr}>${escapeHtml(tag)}</span>`;
+  }).join('');
+}
+
+/**
+ * Toggles a tag in the active filters
+ * @param {string} tag - Tag to toggle
+ */
+function toggleTagFilter(tag) {
+  const normalizedTag = normalizeTag(tag);
+  const activeFilters = getActiveTagFilters();
+  
+  let newFilters;
+  if (activeFilters.includes(normalizedTag)) {
+    // Remove filter
+    newFilters = activeFilters.filter(t => t !== normalizedTag);
+  } else {
+    // Add filter
+    newFilters = [...activeFilters, normalizedTag];
+  }
+  
+  setActiveTagFilters(newFilters);
+  renderActiveTagFilters();
+  
+  // Re-render views to apply filters
+  if (getCurrentViewMode() === 'week') {
+    renderWeekView();
+  } else {
+    renderSavedUpdates();
+  }
+}
+
+/**
+ * Clears all active tag filters
+ */
+function clearTagFilters() {
+  setActiveTagFilters([]);
+  renderActiveTagFilters();
+  
+  // Re-render views
+  if (getCurrentViewMode() === 'week') {
+    renderWeekView();
+  } else {
+    renderSavedUpdates();
+  }
+}
+
+/**
+ * Renders active tag filter chips in the sidebar
+ */
+function renderActiveTagFilters() {
+  const activeFilters = getActiveTagFilters();
+  
+  if (activeFilters.length === 0) {
+    activeTagFilters.innerHTML = '';
+    return;
+  }
+  
+  let html = '<div class="active-filters-row">';
+  
+  activeFilters.forEach(tag => {
+    html += `
+      <span class="active-filter-chip">
+        ${escapeHtml(tag)}
+        <button type="button" class="filter-remove-btn" data-tag="${escapeHtml(tag)}" aria-label="Remove ${escapeHtml(tag)} filter">×</button>
+      </span>
+    `;
+  });
+  
+  html += `<button type="button" class="clear-filters-btn">Clear</button>`;
+  html += '</div>';
+  
+  activeTagFilters.innerHTML = html;
+  
+  // Add event listeners for remove buttons
+  activeTagFilters.querySelectorAll('.filter-remove-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const tag = btn.getAttribute('data-tag');
+      if (tag) {
+        toggleTagFilter(tag);
+      }
+    });
+  });
+  
+  // Add event listener for clear button
+  const clearBtn = activeTagFilters.querySelector('.clear-filters-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearTagFilters();
+    });
+  }
 }
 
 /**
@@ -669,12 +868,14 @@ function switchView(viewMode) {
     weekViewBtn.classList.remove('active');
     logViewContent.style.display = 'block';
     weekViewContent.style.display = 'none';
+    renderActiveTagFilters();
     renderSavedUpdates();
   } else {
     logViewBtn.classList.remove('active');
     weekViewBtn.classList.add('active');
     logViewContent.style.display = 'none';
     weekViewContent.style.display = 'block';
+    renderActiveTagFilters();
     renderWeekView();
   }
 }
@@ -739,6 +940,9 @@ tagsInput.addEventListener('input', updateTagChipStates);
 
 // Initialize: Render tag presets
 renderTagPresets();
+
+// Initialize: Render active tag filters
+renderActiveTagFilters();
 
 // Initialize: Load saved view mode and render appropriate view
 const savedViewMode = getCurrentViewMode();

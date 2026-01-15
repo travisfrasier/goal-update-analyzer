@@ -129,6 +129,72 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+.active-tag-filters {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.active-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background-color: rgba(123, 141, 212, 0.15);
+  border: 1px solid var(--accent-primary);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+}
+
+.filter-remove-btn {
+  background: none;
+  border: none;
+  color: var(--accent-primary);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.filter-remove-btn:hover {
+  background-color: rgba(123, 141, 212, 0.2);
+  transform: scale(1.1);
+}
+
+.clear-filters-btn {
+  padding: 0.375rem 0.75rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.clear-filters-btn:hover {
+  border-color: var(--border-color-hover);
+  background-color: var(--card-bg-hover);
+  color: var(--text-color);
+}
+
 .area-filter-select {
   width: 100%;
   padding: 0.625rem 0.875rem;
@@ -597,6 +663,22 @@ textarea:focus {
   background-color: rgba(123, 141, 212, 0.1);
   color: var(--text-light);
   border: 1px solid rgba(123, 141, 212, 0.15);
+}
+
+.tag-pill.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tag-pill.clickable:hover {
+  background-color: rgba(123, 141, 212, 0.15);
+  border-color: rgba(123, 141, 212, 0.3);
+}
+
+.tag-pill.filter-active {
+  background-color: rgba(123, 141, 212, 0.2);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .area-badge {

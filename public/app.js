@@ -32,6 +32,10 @@ const logViewContent = document.getElementById('logViewContent');
 const weekViewContent = document.getElementById('weekViewContent');
 const weekSummary = document.getElementById('weekSummary');
 const weekAreas = document.getElementById('weekAreas');
+const tagsInput = document.getElementById('tagsInput');
+const tagPresets = document.getElementById('tagPresets');
+const modalTags = document.getElementById('modalTags');
+const modalTagsSection = document.getElementById('modalTagsSection');
 
 // Constants
 const STORAGE_KEY = 'goalUpdates';
@@ -54,6 +58,18 @@ const AREAS_ORDER = [
   'Misc'
 ];
 
+// Tag presets (global presets)
+const TAG_PRESETS = [
+  'aof5',
+  'pb',
+  'weekly',
+  'milestone',
+  'blocker',
+  'progress',
+  'reflection',
+  'planning'
+];
+
 /**
  * Saves an update to localStorage
  * @param {string} text - The original text
@@ -65,13 +81,17 @@ function saveUpdate(text, analysis) {
   // Get selected area
   const area = areaSelect.value;
   
+  // Get and parse tags
+  const tags = getCurrentTags();
+  
   // Create new update object
   const newUpdate = {
     id: Date.now(),
     timestamp: new Date().toISOString(),
     text: text,
     analysis: analysis,
-    area: area
+    area: area,
+    tags: tags
   };
   
   // Save last selected area
@@ -204,6 +224,9 @@ function renderSavedUpdates() {
     // Get area (default to 'Misc' if not set)
     const area = update.area || 'Misc';
     
+    // Get tags (default to empty array if not set)
+    const tags = update.tags || [];
+    
     li.innerHTML = `
       <div class="update-item-header">
         <span class="update-item-time">${timeStr}</span>
@@ -213,6 +236,7 @@ function renderSavedUpdates() {
       </div>
       <div class="update-item-meta">
         <span class="area-badge">${escapeHtml(area)}</span>
+        ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags)}</div>` : ''}
       </div>
       <div class="update-item-preview">${escapeHtml(preview)}</div>
     `;
@@ -318,12 +342,16 @@ function renderWeekView() {
         sentimentBadge = `<span class="week-entry-sentiment sentiment-label ${sentimentClass}">${update.analysis.sentimentLabel}</span>`;
       }
       
+      // Get tags (default to empty array if not set)
+      const tags = update.tags || [];
+      
       entry.innerHTML = `
         <div class="week-entry-header">
           <span class="week-entry-time">${timeStr}</span>
           ${sentimentBadge}
         </div>
         <div class="week-entry-preview">${escapeHtml(preview)}</div>
+        ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags)}</div>` : ''}
       `;
       
       // Add click handler to show read-only view
@@ -382,6 +410,16 @@ function showReadOnlyView(update) {
   modalArea.textContent = area;
   modalArea.className = 'area-badge';
   
+  // Populate tags (default to empty array if not set)
+  const tags = update.tags || [];
+  if (tags.length > 0) {
+    modalTags.innerHTML = renderTagPills(tags);
+    modalTagsSection.style.display = 'block';
+  } else {
+    modalTags.innerHTML = '';
+    modalTagsSection.style.display = 'none';
+  }
+  
   // Show modal
   readOnlyModal.style.display = 'flex';
 }
@@ -402,6 +440,126 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Normalizes a single tag (lowercase, trim)
+ * @param {string} tag - Tag to normalize
+ * @returns {string} Normalized tag
+ */
+function normalizeTag(tag) {
+  return tag.trim().toLowerCase();
+}
+
+/**
+ * Parses comma-separated tag input into normalized tag array
+ * @param {string} tagInput - Comma-separated tag string
+ * @returns {string[]} Array of normalized, unique tags
+ */
+function parseTags(tagInput) {
+  if (!tagInput || !tagInput.trim()) {
+    return [];
+  }
+  
+  const tags = tagInput
+    .split(',')
+    .map(normalizeTag)
+    .filter(tag => tag.length > 0);
+  
+  // Remove duplicates
+  return [...new Set(tags)];
+}
+
+/**
+ * Formats tag array back to comma-separated string for display in input
+ * @param {string[]} tags - Array of tags
+ * @returns {string} Comma-separated tag string
+ */
+function formatTagsForInput(tags) {
+  return tags.join(', ');
+}
+
+/**
+ * Gets current tags from input as parsed array
+ * @returns {string[]} Array of normalized tags
+ */
+function getCurrentTags() {
+  return parseTags(tagsInput.value);
+}
+
+/**
+ * Toggles a tag in the input (adds if not present, removes if present)
+ * @param {string} tag - Tag to toggle
+ */
+function toggleTagInInput(tag) {
+  const normalizedTag = normalizeTag(tag);
+  const currentTags = getCurrentTags();
+  
+  let newTags;
+  if (currentTags.includes(normalizedTag)) {
+    // Remove tag
+    newTags = currentTags.filter(t => t !== normalizedTag);
+  } else {
+    // Add tag
+    newTags = [...currentTags, normalizedTag];
+  }
+  
+  // Update input
+  tagsInput.value = formatTagsForInput(newTags);
+  
+  // Update chip states
+  updateTagChipStates();
+}
+
+/**
+ * Renders tag preset chips
+ */
+function renderTagPresets() {
+  tagPresets.innerHTML = '';
+  
+  TAG_PRESETS.forEach(preset => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-chip';
+    chip.textContent = preset;
+    chip.addEventListener('click', () => toggleTagInInput(preset));
+    tagPresets.appendChild(chip);
+  });
+  
+  // Update chip states based on current input
+  updateTagChipStates();
+}
+
+/**
+ * Updates tag chip visual states (selected vs unselected)
+ */
+function updateTagChipStates() {
+  const currentTags = getCurrentTags();
+  const chips = tagPresets.querySelectorAll('.tag-chip');
+  
+  chips.forEach(chip => {
+    const chipTag = normalizeTag(chip.textContent);
+    if (currentTags.includes(chipTag)) {
+      chip.classList.add('selected');
+    } else {
+      chip.classList.remove('selected');
+    }
+  });
+}
+
+/**
+ * Renders tags as pills HTML
+ * @param {string[]} tags - Array of tags to render
+ * @returns {string} HTML string of tag pills
+ */
+function renderTagPills(tags) {
+  if (!tags || tags.length === 0) {
+    return '';
+  }
+  
+  return tags.map(tag => 
+    `<span class="tag-pill">${escapeHtml(tag)}</span>`
+  ).join('');
 }
 
 /**
@@ -575,6 +733,12 @@ areaFilter.addEventListener('change', () => {
 // View toggle event listeners
 logViewBtn.addEventListener('click', () => switchView('log'));
 weekViewBtn.addEventListener('click', () => switchView('week'));
+
+// Tag input change listener - update chip states
+tagsInput.addEventListener('input', updateTagChipStates);
+
+// Initialize: Render tag presets
+renderTagPresets();
 
 // Initialize: Load saved view mode and render appropriate view
 const savedViewMode = getCurrentViewMode();

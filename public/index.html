@@ -71,7 +71,14 @@
             <option value="Work">Work</option>
             <option value="Misc">Misc</option>
           </select>
+          <input 
+            type="text" 
+            id="tagsInput" 
+            class="tags-input"
+            placeholder="tags (comma-separated)"
+          />
         </div>
+        <div class="tag-presets" id="tagPresets"></div>
         <textarea 
           id="updateText" 
           placeholder="Enter your goal update here... (e.g., 'Made great progress today! Completed my morning workout and finished the first chapter of my book. Feeling motivated to keep going.')"
@@ -126,6 +133,10 @@
             <div class="modal-section">
               <h3>Area</h3>
               <span id="modalArea" class="area-badge"></span>
+            </div>
+            <div class="modal-section" id="modalTagsSection">
+              <h3>Tags</h3>
+              <div id="modalTags" class="tag-pills"></div>
             </div>
             <div class="modal-section">
               <p class="modal-timestamp" id="modalTimestamp"></p>

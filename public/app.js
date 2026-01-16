@@ -37,6 +37,8 @@ const tagPresets = document.getElementById('tagPresets');
 const modalTags = document.getElementById('modalTags');
 const modalTagsSection = document.getElementById('modalTagsSection');
 const activeTagFilters = document.getElementById('activeTagFilters');
+const statusFilter = document.getElementById('statusFilter');
+const modalActions = document.getElementById('modalActions');
 
 // Constants
 const STORAGE_KEY = 'goalUpdates';
@@ -44,6 +46,7 @@ const LAST_AREA_STORAGE_KEY = 'goalUpdateLastArea';
 const AREA_FILTER_STORAGE_KEY = 'goalUpdateAreaFilter';
 const VIEW_MODE_STORAGE_KEY = 'goalUpdateViewMode';
 const TAG_FILTER_STORAGE_KEY = 'goalUpdateTagFilters';
+const STATUS_FILTER_STORAGE_KEY = 'goalUpdateStatusFilter';
 const MAX_SAVED_UPDATES = 10;
 
 // Area list in order (same as used for entry creation)
@@ -93,7 +96,8 @@ function saveUpdate(text, analysis) {
     text: text,
     analysis: analysis,
     area: area,
-    tags: tags
+    tags: tags,
+    status: 'inbox' // Default status for new entries
   };
   
   // Save last selected area
@@ -204,6 +208,39 @@ function entryMatchesTagFilters(update, activeFilters) {
 }
 
 /**
+ * Gets the status of an entry (backward compatible - defaults to 'inbox')
+ * @param {Object} update - Update entry
+ * @returns {string} Status ('inbox', 'processed', or 'archived')
+ */
+function getEntryStatus(update) {
+  return update.status || 'inbox';
+}
+
+/**
+ * Checks if an entry matches the status filter
+ * @param {Object} update - Update entry to check
+ * @param {string} statusFilter - Status filter value ('inbox', 'processed', 'all')
+ * @returns {boolean} True if entry matches the status filter
+ */
+function entryMatchesStatusFilter(update, statusFilter) {
+  if (statusFilter === 'all') {
+    // Show all except archived by default, but if statusFilter is 'all', include archived
+    return true;
+  }
+  
+  const entryStatus = getEntryStatus(update);
+  
+  if (statusFilter === 'inbox') {
+    return entryStatus === 'inbox';
+  } else if (statusFilter === 'processed') {
+    return entryStatus === 'processed';
+  }
+  
+  // Default: exclude archived
+  return entryStatus !== 'archived';
+}
+
+/**
  * Gets the muted color for an area (derived from accent color with hue adjustments)
  * @param {string} area - Area name
  * @returns {string} CSS color value (rgba)
@@ -245,6 +282,9 @@ function renderSavedUpdates() {
   // Get active tag filters
   const activeTagFilters = getActiveTagFilters();
   
+  // Get status filter (default to 'inbox')
+  const selectedStatus = statusFilter.value || 'inbox';
+  
   // Filter updates by area (treat missing area as "Misc")
   let filteredUpdates = selectedArea === ''
     ? allUpdates
@@ -252,6 +292,11 @@ function renderSavedUpdates() {
         const area = update.area || 'Misc';
         return area === selectedArea;
       });
+  
+  // Apply status filtering
+  filteredUpdates = filteredUpdates.filter(update => 
+    entryMatchesStatusFilter(update, selectedStatus)
+  );
   
   // Apply tag filtering (AND logic - entry must have ALL active filter tags)
   if (activeTagFilters.length > 0) {
@@ -308,6 +353,9 @@ function renderSavedUpdates() {
     // Get area (default to 'Misc' if not set)
     const area = update.area || 'Misc';
     
+    // Get status (default to 'inbox' if not set)
+    const status = getEntryStatus(update);
+    
     // Get tags (default to empty array if not set)
     const tags = update.tags || [];
     
@@ -316,6 +364,7 @@ function renderSavedUpdates() {
     
     // Set data attribute and inline style for area color
     li.setAttribute('data-area', area);
+    li.setAttribute('data-status', status);
     li.style.setProperty('--area-color', areaColor);
     
     li.innerHTML = `
@@ -329,6 +378,7 @@ function renderSavedUpdates() {
         <div class="update-item-preview">${escapeHtml(preview)}</div>
         ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags, true)}</div>` : ''}
         <span class="area-label">${escapeHtml(area)}</span>
+        ${status === 'inbox' ? '<span class="inbox-indicator" title="Inbox"></span>' : ''}
       </div>
     `;
     
@@ -357,6 +407,14 @@ function renderSavedUpdates() {
  */
 function renderWeekView() {
   let recentUpdates = getRecentUpdates();
+  
+  // Get status filter (default to 'inbox')
+  const selectedStatus = statusFilter.value || 'inbox';
+  
+  // Apply status filtering
+  recentUpdates = recentUpdates.filter(update => 
+    entryMatchesStatusFilter(update, selectedStatus)
+  );
   
   // Apply tag filtering (AND logic - entry must have ALL active filter tags)
   const activeTagFilters = getActiveTagFilters();
@@ -462,11 +520,15 @@ function renderWeekView() {
       // Get area (default to 'Misc' if not set)
       const area = update.area || 'Misc';
       
+      // Get status (default to 'inbox' if not set)
+      const status = getEntryStatus(update);
+      
       // Get area color for the left bar
       const areaColor = getAreaColor(area);
       
       // Set data attribute and inline style for area color
       entry.setAttribute('data-area', area);
+      entry.setAttribute('data-status', status);
       entry.style.setProperty('--area-color', areaColor);
       
       entry.innerHTML = `
@@ -478,6 +540,7 @@ function renderWeekView() {
           <div class="week-entry-preview">${escapeHtml(preview)}</div>
           ${tags.length > 0 ? `<div class="tag-pills">${renderTagPills(tags, true)}</div>` : ''}
           <span class="area-label">${escapeHtml(area)}</span>
+          ${status === 'inbox' ? '<span class="inbox-indicator" title="Inbox"></span>' : ''}
         </div>
       `;
       
@@ -559,8 +622,90 @@ function showReadOnlyView(update) {
     modalTagsSection.style.display = 'none';
   }
   
+  // Render modal action buttons based on status
+  renderModalActions(update);
+  
   // Show modal
   readOnlyModal.style.display = 'flex';
+}
+
+/**
+ * Updates the status of an entry
+ * @param {number} entryId - ID of the entry to update
+ * @param {string} newStatus - New status ('inbox', 'processed', 'archived')
+ */
+function updateEntryStatus(entryId, newStatus) {
+  const updates = getSavedUpdates();
+  const updateIndex = updates.findIndex(u => u.id === entryId);
+  
+  if (updateIndex === -1) {
+    console.error('Entry not found:', entryId);
+    return;
+  }
+  
+  // Update status
+  updates[updateIndex].status = newStatus;
+  
+  // Save to localStorage
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updates));
+  
+  // Refresh views
+  if (getCurrentViewMode() === 'week') {
+    renderWeekView();
+  } else {
+    renderSavedUpdates();
+  }
+  
+  // If modal is open, update it
+  const modalUpdate = updates[updateIndex];
+  if (readOnlyModal.style.display !== 'none') {
+    // Check if this is the currently displayed entry
+    const currentModalId = modalActions.getAttribute('data-entry-id');
+    if (currentModalId && parseInt(currentModalId) === entryId) {
+      showReadOnlyView(modalUpdate);
+    }
+  }
+}
+
+/**
+ * Renders modal action buttons based on entry status
+ * @param {Object} update - The update entry
+ */
+function renderModalActions(update) {
+  const status = getEntryStatus(update);
+  const entryId = update.id;
+  
+  let html = '';
+  
+  if (status === 'inbox') {
+    html = `
+      <button type="button" class="modal-action-btn primary" data-action="processed" data-entry-id="${entryId}">Mark Processed</button>
+      <button type="button" class="modal-action-btn secondary" data-action="archived" data-entry-id="${entryId}">Archive</button>
+    `;
+  } else if (status === 'processed') {
+    html = `
+      <button type="button" class="modal-action-btn primary" data-action="inbox" data-entry-id="${entryId}">Move to Inbox</button>
+      <button type="button" class="modal-action-btn secondary" data-action="archived" data-entry-id="${entryId}">Archive</button>
+    `;
+  } else if (status === 'archived') {
+    html = `
+      <button type="button" class="modal-action-btn primary" data-action="inbox" data-entry-id="${entryId}">Restore to Inbox</button>
+    `;
+  }
+  
+  modalActions.innerHTML = html;
+  modalActions.setAttribute('data-entry-id', entryId);
+  
+  // Add event listeners
+  modalActions.querySelectorAll('.modal-action-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const action = btn.getAttribute('data-action');
+      const id = parseInt(btn.getAttribute('data-entry-id'));
+      updateEntryStatus(id, action);
+    });
+  });
 }
 
 /**
@@ -965,6 +1110,14 @@ if (savedFilter !== null) {
   areaFilter.value = savedFilter;
 }
 
+// Initialize: Load status filter from localStorage (default to 'inbox')
+const savedStatusFilter = localStorage.getItem(STATUS_FILTER_STORAGE_KEY);
+if (savedStatusFilter !== null) {
+  statusFilter.value = savedStatusFilter;
+} else {
+  statusFilter.value = 'inbox'; // Default
+}
+
 // Save area when changed
 areaSelect.addEventListener('change', () => {
   localStorage.setItem(LAST_AREA_STORAGE_KEY, areaSelect.value);
@@ -974,6 +1127,16 @@ areaSelect.addEventListener('change', () => {
 areaFilter.addEventListener('change', () => {
   localStorage.setItem(AREA_FILTER_STORAGE_KEY, areaFilter.value);
   renderSavedUpdates();
+});
+
+// Filter updates when status filter changes
+statusFilter.addEventListener('change', () => {
+  localStorage.setItem(STATUS_FILTER_STORAGE_KEY, statusFilter.value);
+  if (getCurrentViewMode() === 'week') {
+    renderWeekView();
+  } else {
+    renderSavedUpdates();
+  }
 });
 
 // View toggle event listeners

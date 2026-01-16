@@ -18,6 +18,11 @@
         <!-- Log view content -->
         <div id="logViewContent" class="view-content">
           <div class="sidebar-filter">
+            <select id="statusFilter" class="area-filter-select">
+              <option value="inbox">Inbox</option>
+              <option value="all">All</option>
+              <option value="processed">Processed</option>
+            </select>
             <select id="areaFilter" class="area-filter-select">
               <option value="">All Areas</option>
               <option value="Running">Running</option>
@@ -142,6 +147,7 @@
             <div class="modal-section">
               <p class="modal-timestamp" id="modalTimestamp"></p>
             </div>
+            <div class="modal-actions" id="modalActions"></div>
           </div>
         </div>
       </div>
